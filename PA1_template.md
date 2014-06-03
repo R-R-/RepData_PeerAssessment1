@@ -145,7 +145,7 @@ median(total_steps)
 ## [1] 10766
 ```
 
-Filling NA values do have impact on mean and median.
+**Conclusion**: Filling NA values do have impact on mean and median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend”
@@ -180,23 +180,10 @@ avg <- data.frame(
   c(unique(activity_weekday$interval),
         unique(activity_weekend$interval)),
   c(rep("weekday", length(interval_avg_weekday)),
-        rep("weekend", length(interval_avg_weekend))),
+        rep("weekend", length(interval_avg_weekend)))
   )
-```
-
-```
-## Error: argument is missing, with no default
-```
-
-```r
 colnames(avg) <- c("steps", "interval", "weekday")
-```
 
-```
-## Error: object 'avg' not found
-```
-
-```r
 xyplot(steps ~ interval | weekday,
        data = avg,
        layout=c(1,2),
@@ -205,7 +192,5 @@ xyplot(steps ~ interval | weekday,
        type="l")
 ```
 
-```
-## Error: object 'avg' not found
-```
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
 On the weekday, the number of steps have a clear peek, while on the weekend, the steps are spread throughout the day.
