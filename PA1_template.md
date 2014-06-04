@@ -6,26 +6,23 @@ Load the data
 
 ```r
 set.seed(0)
+library(lattice)
+library(ggplot2)
 activity <- read.csv("activity.csv")
-```
-
-Add datetime field to the data, which will be useful later
-
-
-```r
 activity$datetime <- strptime(activity$date, format = "%Y-%m-%d")
+activity$date <- as.Date(activity$date)
 summary(activity)
 ```
 
 ```
-##      steps               date          interval       datetime         
-##  Min.   :  0.0   2012-10-01:  288   Min.   :   0   Min.   :2012-10-01  
-##  1st Qu.:  0.0   2012-10-02:  288   1st Qu.: 589   1st Qu.:2012-10-16  
-##  Median :  0.0   2012-10-03:  288   Median :1178   Median :2012-10-31  
-##  Mean   : 37.4   2012-10-04:  288   Mean   :1178   Mean   :2012-10-31  
-##  3rd Qu.: 12.0   2012-10-05:  288   3rd Qu.:1766   3rd Qu.:2012-11-15  
-##  Max.   :806.0   2012-10-06:  288   Max.   :2355   Max.   :2012-11-30  
-##  NA's   :2304    (Other)   :15840
+##      steps            date               interval       datetime         
+##  Min.   :  0.0   Min.   :2012-10-01   Min.   :   0   Min.   :2012-10-01  
+##  1st Qu.:  0.0   1st Qu.:2012-10-16   1st Qu.: 589   1st Qu.:2012-10-16  
+##  Median :  0.0   Median :2012-10-31   Median :1178   Median :2012-10-31  
+##  Mean   : 37.4   Mean   :2012-10-31   Mean   :1178   Mean   :2012-10-31  
+##  3rd Qu.: 12.0   3rd Qu.:2012-11-15   3rd Qu.:1766   3rd Qu.:2012-11-15  
+##  Max.   :806.0   Max.   :2012-11-30   Max.   :2355   Max.   :2012-11-30  
+##  NA's   :2304
 ```
 
 ## What is mean total number of steps taken per day?
@@ -33,20 +30,34 @@ Make a histogram of the total number of steps taken each day
 
 
 ```r
-total_steps <- tapply(activity$steps, activity$date, sum, na.rm = T)
-hist(total_steps, 
-     xlab = "Steps",
-     ylab = "Number of days",
-     main = "Total number of steps per day")
+total_steps <- aggregate(activity$steps, by=list(activity$date), sum, na.rm=T)
+colnames(total_steps) <- c("date", "steps")
+ggplot(total_steps, aes(x=steps)) +
+  geom_histogram(fill="steelblue", binwidth=5000) +
+  labs(title="Total number of steps per day",
+       x="Steps",
+       y="Number of days") +
+  geom_point(aes(x=mean(total_steps$steps),
+                 y=0, color="red"), 
+             size=4, shape=15) +
+  geom_point(aes(x=median(total_steps$steps),
+                 y=0, color="yellow"), 
+             size=4, shape=15) +
+  scale_color_manual(name = element_blank(),
+                     labels = c(paste("Mean = ", 
+                                      round(mean(total_steps$steps))),
+                                paste("Median = ",
+                                      round(median(total_steps$steps)))),
+                     values = c("red", "yellow"))
 ```
 
-![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2.png) 
 
 Calculate and report the **mean** and **median** total number of steps taken per day
 
 
 ```r
-mean(total_steps)
+mean(total_steps$steps)
 ```
 
 ```
@@ -54,7 +65,7 @@ mean(total_steps)
 ```
 
 ```r
-median(total_steps)
+median(total_steps$steps)
 ```
 
 ```
@@ -67,26 +78,36 @@ Make a time series plot of the 5-minute interval and the average number of steps
 
 
 ```r
-interval_avg <- tapply(activity$steps, activity$interval, mean, na.rm = T)
-plot(interval_avg,
-     main="Average daily activity",
-     xlab="5-minute interval",
-     ylab="Average number of steps",
-     type="l")
+interval_avg <- aggregate(activity$steps,
+                          by=list(activity$interval), mean, na.rm = T)
+colnames(interval_avg) <- c("interval", "avg")
+
+max_interval <- interval_avg[interval_avg$avg == max(interval_avg$avg),]
+
+ggplot(interval_avg, aes(x=interval, y=avg)) + 
+  geom_line(color="steelblue", size=1) +
+  labs(title="Average daily activity",
+       x="5-minute interval",
+       y="Average number of steps") +
+  geom_point(aes(x=max_interval$interval,
+                 y=max_interval$avg, color="red"), size=4, shape=15) +
+  theme(legend.position="bottom") +
+  scale_color_manual("", values=c("red"), 
+                     labels=c(paste("Max = ", max_interval$interval)))
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
 
 Find which 5-minute interval, contains the maximum number of steps
 
 
 ```r
-interval_avg[interval_avg == max(interval_avg)]
+interval_avg[interval_avg$avg == max(interval_avg$avg),]
 ```
 
 ```
-##   835 
-## 206.2
+##     interval   avg
+## 104      835 206.2
 ```
 
 ## Imputing missing values
@@ -112,6 +133,7 @@ Create a new dataset that is equal to the original dataset but with the missing 
 activity_imputed <- activity
 missing <- is.na(activity$steps)
 
+interval_avg <- tapply(activity$steps, activity$interval, mean, na.rm = T)
 activity_imputed$steps[missing] <- 
   interval_avg[as.character(activity$interval[missing])]
 ```
@@ -120,17 +142,32 @@ Make a histogram of the total number of steps taken each day and Calculate and r
 
 
 ```r
-total_steps <- tapply(activity_imputed$steps, activity_imputed$date, sum)
-hist(total_steps, 
-     xlab = "steps",
-     ylab = "number of days",
-     main = "Total number of steps per day")
+total_steps <- aggregate(activity_imputed$steps,
+                         by=list(activity_imputed$date), sum, na.rm=T)
+colnames(total_steps) <- c("date", "steps")
+ggplot(total_steps, aes(x=steps)) +
+  geom_histogram(fill="steelblue", binwidth=5000) +
+  labs(title="Total number of steps per day",
+       x="Steps",
+       y="Number of days") +
+  geom_point(aes(x=mean(total_steps$steps),
+                 y=0, color="red"), 
+             size=4, shape=15) +
+  geom_point(aes(x=median(total_steps$steps),
+                 y=0, color="yellow"), 
+             size=4, shape=15) +
+  scale_color_manual(name = element_blank(),
+                     labels = c(paste("Mean = ", 
+                                      round(mean(total_steps$steps))),
+                                paste("Median = ",
+                                      round(median(total_steps$steps)))),
+                     values = c("red", "yellow"))
 ```
 
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
 ```r
-mean(total_steps)
+mean(total_steps$steps)
 ```
 
 ```
@@ -138,7 +175,7 @@ mean(total_steps)
 ```
 
 ```r
-median(total_steps)
+median(total_steps$steps)
 ```
 
 ```
@@ -165,7 +202,6 @@ Make a panel plot containing a time series plot of the 5-minute interval and the
 
 
 ```r
-library(lattice)
 activity_weekday = activity_imputed[activity_imputed$weekday == "weekday",]
 activity_weekend = activity_imputed[activity_imputed$weekday == "weekend",]
 interval_avg_weekday <- tapply(activity_weekday$steps,
@@ -192,6 +228,6 @@ xyplot(steps ~ interval | weekday,
        type="l")
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
 
 **Conclusion**: On the weekday, the number of steps have a clear peek, while on the weekend, the steps are spread throughout the day.
