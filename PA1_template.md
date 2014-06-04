@@ -1,7 +1,7 @@
 # Reproducible Research: Peer Assessment 1
 
 ## Loading and preprocessing the data
-Load the data
+Load, clean, and view summary of the data.
 
 
 ```r
@@ -182,7 +182,7 @@ median(total_steps$steps)
 ## [1] 10766
 ```
 
-**Conclusion**: Filling NA values do have impact on mean and median.
+**Conclusion**: Filling NA values changed both mean and median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 Create a new factor variable in the dataset with two levels – “weekday” and “weekend”
